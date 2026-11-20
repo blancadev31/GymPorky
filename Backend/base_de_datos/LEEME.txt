@@ -1,0 +1,8 @@
+BASE DE DATOS PORKY GYM (SQLite 3) - Igual a la documentada en el Capítulo 5 del documento.
+
+porkygym_sqlite.sql            Script de creación: 35 tablas, datos de prueba, 4 vistas y 8 triggers.
+porkygym_consultas_sqlite.sql  UPDATE, DELETE y las 30 consultas SQL del documento.
+porkygym.sqlite3               Base ya creada y poblada con el script anterior (para revisar y probar consultas).
+
+Para ejecutar el sistema NO copie porkygym.sqlite3 como Backend/db.sqlite3 (no tiene las tablas
+internas de Django). Use:  USE_SQLITE=True  en .env  y luego  python manage.py migrate

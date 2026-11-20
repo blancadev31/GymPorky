@@ -1,0 +1,47 @@
+# =========================
+# Python / Django
+# =========================
+
+__pycache__/
+*.py[cod]
+*.pyo
+Backend/staticfiles/
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Bases de datos locales
+*.sqlite3
+
+
+# =========================
+# Node / React / Vite
+# =========================
+
+node_modules/
+dist/
+.vite/
+
+
+# =========================
+# VS Code
+# =========================
+
+.vscode/
+
+
+# =========================
+# Sistema operativo
+# =========================
+
+.DS_Store
+Thumbs.db
