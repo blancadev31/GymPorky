@@ -33,7 +33,9 @@ class PayPalCrearOrdenMembresiaView(APIView):
         try:
             socio = Socio.objects.select_related('id_socio').get(pk=request.data.get('id_socio'))
             plan = PlanMembresia.objects.get(pk=request.data.get('id_plan_membresia'), estado='Activo')
-            config_tasa = ConfiguracionSistema.objects.get(clave='tipo_cambio_usd')
+            config_tasa, _ = ConfiguracionSistema.objects.get_or_create(
+    clave='tipo_cambio_usd', defaults={'valor': Decimal('0.0000')}
+)
             tasa = config_tasa.valor
             if tasa <= 0:
                 raise ValueError('El administrador todavía no configuró el tipo de cambio (Bs por USD).')
