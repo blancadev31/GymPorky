@@ -13,12 +13,20 @@ type Mensaje = { de: 'bot' | 'yo'; texto: string };
 type Props = { onIr: (pantalla: string) => void };
 
 const PANTALLAS: [RegExp, string][] = [
+  [/\b(historial de ventas?|historial de venta)\b/, 'historial-ventas'],
+  [/\b(m[eé]todos? de pago)\b/, 'metodos-pago'],
+  [/\b(tipo de cambio|configuraci[oó]n)\b/, 'configuracion'],
+  [/\b(entrenadores)\b/, 'entrenadores'],
+  [/\b(gestionar planes|planes de membres[ií]a|planes)\b/, 'planes'],
   [/\b(dashboard|tablero|estad[ií]sticas?)\b/, 'dashboard'],
   [/\b(ventas?|punto de venta|pos)\b/, 'ventas'],
   [/\b(caja|arqueo)\b/, 'caja'],
   [/\b(reportes?)\b/, 'reportes'],
   [/\b(acceso|control de acceso)\b/, 'acceso'],
   [/\b(personal|recursos humanos|planilla|asistencia)\b/, 'rrhh'],
+  [/\b(proveedores?)\b/, 'proveedores'],
+  [/\b(compras?)\b/, 'compras'],
+  [/\b(categor[ií]as?)\b/, 'categorias'],
   [/\b(kardex)\b/, 'kardex'],
   [/\b(alertas?)\b/, 'alertas'],
   [/\b(productos?|inventario)\b/, 'productos'],
@@ -30,7 +38,7 @@ const PANTALLAS: [RegExp, string][] = [
   [/\b(inicio|principal)\b/, 'inicio'],
 ];
 
-const normalizar = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[¿?¡!.,]/g, '').trim();
+const normalizar = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[¿?¡!.,]/g, '').trim();
 
 export default function AsistenteVirtual({ onIr }: Props) {
   const [abierto, setAbierto] = useState(false);
@@ -105,9 +113,12 @@ export default function AsistenteVirtual({ onIr }: Props) {
     setPensando(true);
     try {
       const r = await api.post('chatbot/', { mensaje: limpio });
-      bot(r.data.respuesta);
-      setSugerencias(r.data.sugerencias || []);
-      if (r.data.accion?.tipo === 'navegar') onIr(r.data.accion.pantalla);
+      const respuestaTexto = typeof r?.data?.respuesta === 'string' && r.data.respuesta.trim()
+        ? r.data.respuesta
+        : 'El servidor respondió sin un texto de respuesta.';
+      bot(respuestaTexto);
+      if (Array.isArray(r?.data?.sugerencias)) setSugerencias(r.data.sugerencias);
+      if (r?.data?.accion?.tipo === 'navegar' && r?.data?.accion?.pantalla) onIr(r.data.accion.pantalla);
     } catch {
       bot('No pude conectarme con el servidor. Inténtalo de nuevo.');
     } finally { setPensando(false); }
