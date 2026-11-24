@@ -18,7 +18,7 @@ export default function HistorialVentasScreen({ onVolver }: Props) {
   useEffect(() => { void cargar(); }, [cargar]);
   const filtradas = ventas.filter(v => {
     const q = busqueda.trim().toLowerCase(); const d = new Date(v.fecha_hora); const dia = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    return (!q || [String(v.id_venta), v.socio_nombre, v.usuario, v.nro_factura || ''].some(x => x.toLowerCase().includes(q))) && (!desde || dia >= desde) && (!hasta || dia <= hasta) && (!metodo || String(v.id_metodo_pago) === metodo);
+    return (!q || [String(v.id_venta), v.socio_nombre, v.usuario, v.metodo_pago, v.nro_factura].some(x => String(x ?? '').toLowerCase().includes(q))) && (!desde || dia >= desde) && (!hasta || dia <= hasta) && (!metodo || String(v.id_metodo_pago) === metodo);
   });
   const totalFiltrado = filtradas.reduce((s,v) => s + Number(v.monto_total_local || 0), 0);
   const imprimirComprobante = () => window.print();

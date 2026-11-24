@@ -22,7 +22,7 @@ from .chatbot import responder
 from .membresias import resumen_membresia
 from .models import (
     AsignacionRutina, ContratoMembresia, DetalleRutina, DetalleVentaProducto, MarcacionAcceso, MarcacionPersonal,
-    Notificacion, Producto, Socio, Venta, ArqueoCaja,
+    Notificacion, PagoPasarela, Producto, Socio, Venta, ArqueoCaja,
 )
 
 
@@ -217,7 +217,30 @@ class MiPanelView(APIView):
             'racha_dias': racha,
             'ultimo_ingreso': timezone.localtime(accesos.order_by('-fecha_hora').first().fecha_hora).strftime('%d/%m/%Y %H:%M') if accesos.exists() else None,
             'notificaciones_no_leidas': Notificacion.objects.filter(id_usuario=request.user, leida=False).count(),
+            'pagos': self._mis_pagos(socio),
         })
+
+    @staticmethod
+    def _mis_pagos(socio):
+        """Comprobantes de membresía del socio autenticado (solo los suyos)."""
+        u = socio.id_socio
+        nombre = f'{u.first_name} {u.last_name}'.strip() or u.username
+        contratos = (ContratoMembresia.objects.filter(id_socio=socio)
+                     .select_related('id_plan_mem', 'id_metodo_pago').order_by('-id_contrato_mem')[:12])
+        pasarela = {p.id_contrato_mem_id: p for p in PagoPasarela.objects.filter(
+            id_contrato_mem__in=[c.id_contrato_mem for c in contratos], estado='COMPLETADO')}
+        pagos = []
+        for c in contratos:
+            pp = pasarela.get(c.id_contrato_mem)
+            pagos.append({
+                'nro': c.id_contrato_mem, 'socio': nombre, 'ci': u.ci or '',
+                'plan': c.id_plan_mem.nombre_plan, 'operacion': c.tipo_operacion,
+                'inicio': c.fecha_inicio.strftime('%d/%m/%Y'), 'vencimiento': c.fecha_vencimiento.strftime('%d/%m/%Y'),
+                'metodo': c.id_metodo_pago.descripcion, 'monto': str(c.monto_pagado_local),
+                'estado': c.estado_membresia,
+                'referencia_paypal': (pp.id_captura_externa or pp.id_orden_externa) if pp else None,
+            })
+        return pagos
 
 
 # ------------------------------------------------------------------------------
@@ -234,3 +257,4 @@ class ChatbotView(APIView):
         if len(mensaje) > 500:
             mensaje = mensaje[:500]
         return Response(responder(request.user, mensaje))
+    

@@ -263,11 +263,34 @@ def responder(u, mensaje):
     if u.es_administrador or u.es_recepcionista:
         if tiene(t, 'cuantos socios', 'total de socios', 'socios activos', 'cantidad de socios'):
             activos = ContratoMembresia.objects.filter(
-                fecha_inicio__lte=hoy, fecha_fin__gte=hoy
-            ).values('id_socio').distinct().count()
-            total_socios = Socio.objects.count()
-            return _r(f'Hay {total_socios} socio(s) registrados en total, de los cuales {activos} tienen membresía vigente hoy.',
-                      sugerencias_para(u))
+                fecha_inicio__lte=hoy, fecha_vencimiento__gte=hoy
+            ).values('id_socio_id').distinct().count()
+            socios_qs = Socio.objects.select_related('id_socio').order_by('id_socio__first_name', 'id_socio__username')
+            total_socios = socios_qs.count()
+            muestra = list(socios_qs[:15])
+            if not muestra:
+                return _r(
+                    f'Hay {total_socios} socio(s) registrados en total, de los cuales {activos} tienen membresía vigente hoy.',
+                    sugerencias_para(u)
+                )
+            lineas = []
+            for s in muestra:
+                nombre_completo = f'{_nombre(s.id_socio)} {s.id_socio.last_name}'.strip()
+                m = resumen_membresia(s, hoy=hoy)
+                if m['tiene_membresia']:
+                    detalle = f" — {m['plan']} ({m['dias_restantes']}d)"
+                elif m['estado'] == 'Vencida':
+                    detalle = ' — Vencida'
+                else:
+                    detalle = ' — Sin membresía'
+                lineas.append(f'• {nombre_completo}{detalle}')
+            pie = f'\n(Mostrando {len(muestra)} de {total_socios} socios)' if total_socios > len(muestra) else ''
+            return _r(
+                f'Hay {total_socios} socio(s) registrados en total, de los cuales {activos} tienen membresía vigente hoy:\n'
+                + '\n'.join(lineas)
+                + pie,
+                sugerencias_para(u)
+            )
 
         m_socio = re.search(
             r'\b(?:plan|membresia|vencimiento|vence|tiempo|dias|estado|tiene)\b.*?\b(?:de|del socio|socio|a)\s+([a-zñ0-9]+(?:\s+[a-zñ0-9]+)?)',

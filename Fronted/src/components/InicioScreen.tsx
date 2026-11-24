@@ -20,7 +20,38 @@ type MiPanel = {
   visitas_mes: number;
   racha_dias: number;
   ultimo_ingreso: string | null;
+  pagos?: Pago[];
 };
+type Pago = {
+  nro: number; socio: string; ci: string; plan: string; operacion: string; inicio: string; vencimiento: string;
+  metodo: string; monto: string; estado: string; referencia_paypal: string | null;
+};
+
+// Escapa texto antes de ponerlo en el HTML del comprobante.
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+
+// Abre el comprobante de pago de membresía en una ventana nueva lista para imprimir o guardar en PDF.
+function verComprobante(p: Pago) {
+  const fila = (k: string, v: string) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`;
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Comprobante de membresía N° ${esc(p.nro)}</title>
+<style>body{font-family:Arial,sans-serif;max-width:560px;margin:24px auto;color:#111}h1{font-size:20px;margin:0}
+.sub{color:#555;font-size:13px;margin:4px 0 16px}table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;width:42%;color:#444;font-weight:normal}th,td{padding:7px 4px;border-bottom:1px solid #ddd}
+.total td,.total th{font-weight:bold;font-size:16px;color:#111}.nota{font-size:11px;color:#666;margin-top:16px}
+button{margin-top:16px;padding:8px 14px}@media print{button{display:none}}</style></head><body>
+<h1>PORKY GYM – Comprobante de pago de membresía</h1>
+<p class="sub">Comprobante N° ${esc(p.nro)} · Emitido: ${esc(new Date().toLocaleString('es-BO'))}</p>
+<table>${fila('Socio', p.socio)}${p.ci ? fila('CI', p.ci) : ''}${fila('Plan', p.plan)}${fila('Operación', p.operacion)}
+${fila('Vigencia', `${p.inicio} al ${p.vencimiento}`)}${fila('Método de pago', p.metodo)}
+${p.referencia_paypal ? fila('Referencia PayPal', p.referencia_paypal) : ''}${fila('Estado', p.estado)}
+<tr class="total"><th>Total pagado</th><td>Bs ${esc(p.monto)}</td></tr></table>
+<p class="nota">Comprobante interno sin valor fiscal.</p>
+<button onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { alert('Permita las ventanas emergentes para ver el comprobante.'); return; }
+  w.document.write(html);
+  w.document.close();
+}
 
 const ATAJOS: Atajo[] = [
   { pantalla: 'dashboard', titulo: 'Dashboard', descripcion: 'Estadísticas reales del gimnasio en tiempo real.', roles: ['es_administrador', 'es_recepcionista', 'es_entrenador'] },
@@ -101,6 +132,25 @@ export default function InicioScreen({ usuario, onIr }: Props) {
                 </ol>
               </>
             ) : <p className="text-sm text-gray-400">Aún no tienes una rutina asignada. Pídela a tu entrenador.</p>}
+          </div>
+          <div className="rounded border border-gray-700 bg-gray-900 p-4">
+            <p className="mb-2 font-bold text-yellow-400">Mis pagos y comprobantes</p>
+            {panel.pagos && panel.pagos.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-left text-sm">
+                  <thead className="text-gray-400"><tr><th className="p-2">N°</th><th className="p-2">Plan</th><th className="p-2">Vigencia</th><th className="p-2">Método</th><th className="p-2">Monto</th><th className="p-2"></th></tr></thead>
+                  <tbody>
+                    {panel.pagos.map((p) => (
+                      <tr key={p.nro} className="border-t border-gray-800">
+                        <td className="p-2">{p.nro}</td><td className="p-2">{p.plan}</td><td className="p-2">{p.inicio} – {p.vencimiento}</td>
+                        <td className="p-2">{p.metodo}</td><td className="p-2">Bs {p.monto}</td>
+                        <td className="p-2"><button onClick={() => verComprobante(p)} className="rounded bg-yellow-500 px-3 py-1 font-bold text-black">Ver comprobante</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <p className="text-sm text-gray-400">Aún no tienes pagos de membresía registrados.</p>}
           </div>
           <p className="text-xs text-gray-500"> Pregúntale a PorkyBot (abajo a la derecha): "¿Cuándo vence mi membresía?" o di "marcar mi ingreso" con el micrófono.</p>
         </div>

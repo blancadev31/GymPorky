@@ -468,10 +468,19 @@ class VentaSerializer(serializers.ModelSerializer):
     monto_total_local = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     tasa_cambio_aplicada = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
     fecha_hora = serializers.DateTimeField(read_only=True)
+    # Nombres legibles para el historial de ventas (solo lectura).
+    usuario = serializers.CharField(source='id_usuario.username', read_only=True)
+    metodo_pago = serializers.CharField(source='id_metodo_pago.descripcion', read_only=True)
+    socio_nombre = serializers.SerializerMethodField()
+
+    def get_socio_nombre(self, obj):
+        u = obj.id_socio.id_socio
+        return (f'{u.first_name} {u.last_name}'.strip() or u.username)
 
     class Meta:
         model = Venta
-        fields = ['id_venta', 'caja', 'id_usuario', 'id_metodo_pago', 'id_socio',
+        fields = ['id_venta', 'caja', 'id_usuario', 'usuario', 'id_metodo_pago', 'metodo_pago',
+                  'id_socio', 'socio_nombre',
                   'fecha_hora', 'nro_factura', 'tasa_cambio_aplicada',
                   'monto_total_local', 'estado_venta', 'detalles', 'detalle_productos']
         read_only_fields = ['id_venta', 'caja', 'id_usuario', 'fecha_hora',
@@ -1475,3 +1484,4 @@ class EgresoCajaSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError('El concepto es obligatorio.')
         return value
+    
